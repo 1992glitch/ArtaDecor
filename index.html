@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arta Decor — Panel Menaxhimi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.js"></script>
+</head>
+<body>
+ 
+ <div id="login-screen">
+    <!-- HAPI 1: ZGJEDHJA E ROLIT (PËRDOR CSS-IN TËND AKTUAL) -->
+    <div class="login-box" id="role-selection-box" style="text-align: center;">
+      <div class="login-logo" style="margin-bottom: 5px;">Menaxhimi i Sistemit</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">Sistemi i Menaxhimit të Punonjësve</div>
+      
+      <div style="font-size: 15px; font-weight: 600; margin-bottom: 20px; color: var(--text);">Zgjidh llogarinë tënde</div>
+      
+      <!-- Kartat e përshtatshme me stilin tënd aktual -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+        <div onclick="selectLoginRole('admin')" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 10px; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 24px; margin-bottom: 8px;">👑</div>
+          <div style="font-weight: 600; font-size: 14px; color: var(--text);">Shefi</div>
+        </div>
+        
+        <div onclick="selectLoginRole('worker')" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 10px; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
+          <div style="font-weight: 600; font-size: 14px; color: var(--text);">Punonjës</div>
+        </div>
+      </div>
+      
+      <div style="border-top: 1px solid var(--border); padding-top: 15px; font-size: 12px; color: #10b981; font-weight: 500;">
+        🔒 Lidhje e sigurt
+      </div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 15px; cursor: pointer;">Informacione Shtese</div>
+    </div>
+ 
+    <!-- HAPI 2: SHFAQJA E INPUTIT TË FJALËKALIMIT (FSHIHET FILLIMISHT) -->
+    <div class="login-box" id="password-input-box" style="display: none;">
+      <div style="text-align: left; margin-bottom: 15px;">
+        <button onclick="backToRoles()" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0;">← Mbrapa</button>
+      </div>
+      
+      <div class="login-logo" id="selected-role-title">Kyçu</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Shkruani fjalëkalimin për të hyrë në sistem</div>
+      
+      <!-- Shfaqet vetëm nëse zgjidhet roli Punonjës që të zgjedhin emrin e tyre -->
+      <div class="login-field" id="worker-select-field" style="display: none;">
+        <label class="login-label">Zgjidh Emrin Tënd</label>
+        <select class="login-input" id="login-worker-dropdown" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);"></select>
+      </div>
+ 
+      <!-- Shfaqet vetëm nëse zgjidhet roli Admin -->
+      <div class="login-field" id="admin-username-field" style="display: none;">
+        <label class="login-label">Përdoruesi (Username)</label>
+        <input class="login-input" id="login-username" type="text" placeholder="arta_admin" autocomplete="username" onkeydown="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+      </div>
+ 
+      <div class="login-field">
+        <label class="login-label">Fjalëkalimi</label>
+        <input class="login-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" minlength="4" onkeydown="if(event.key==='Enter') checkLogin()">
+      </div>
+      
+      <button class="btn btn-primary" onclick="checkLogin()" style="width: 100%; margin-top: 10px;">Kyçu në Panel</button>
+    </div>
+  </div>
+ 
+  <div id="app-layout" style="display: none;">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-title">Arta Decor</div>
+          <div class="brand-subtitle">Management v1.0</div>
+        </div>
+        <nav class="menu">
+          <a class="menu-item active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</a>
+          <a class="menu-item" data-tab="calendar" onclick="switchTab('calendar')">📅 Kalendari</a>
+          <a class="menu-item" data-tab="decors" onclick="switchTab('decors')">✨ Rezervimet</a>
+          <a class="menu-item" data-tab="tasks" onclick="switchTab('tasks')">🗂️ Bordi i Detyrave</a>
+          <a class="menu-item" data-tab="reports" onclick="switchTab('reports')">📝 Raporte & Shënime</a>
+          <a class="menu-item" data-tab="workers" onclick="switchTab('workers')">👥 Ekipi & Rolet</a>
+          <a class="menu-item" data-tab="finance" onclick="switchTab('finance')">💰 Financat</a>
+          <a class="menu-item" data-tab="chat" onclick="switchTab('chat')">💬 Chat i Ekipit</a>
+        </nav>
+      </div>
+      <div class="sidebar-footer">
+        <a class="menu-item" data-tab="settings" onclick="switchTab('settings')" style="display:flex; align-items:center; gap:8px; margin-bottom: 10px;">⚙️ Cilësimet</a>
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Administrator</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Dalje ✕</button>
+      </div>
+    </aside>
+ 
+    <main class="main-content">
+      <!-- DASHBOARD TAB -->
+      <section class="tab-content active" id="tab-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Mirëseerdhët, Arta</h1>
+            <p class="page-subtitle">Pasqyra e përgjithshme e eventeve dhe financave për biznesin tuaj.</p>
+          </div>
+        </div>
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div class="metric-label">Evente Totale</div>
+            <div class="metric-value" id="m-total-events">0</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Të Ardhura</div>
+            <div class="metric-value text-success" id="m-total-income">0 €</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Shpenzime</div>
+            <div class="metric-value text-danger" id="m-total-expense">0 €</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Balanca (Fitimi)</div>
+            <div class="metric-value text-gold" id="m-balance">0 €</div>
+          </div>
+        </div>
+        <div class="dashboard-split" style="margin-bottom: 24px;">
+          <div class="card" style="flex: 3;">
+            <div class="card-header">
+              <h3 class="card-title">Të Ardhura vs Shpenzime</h3>
+            </div>
+            <div style="height: 260px;"><canvas id="chart-finance"></canvas></div>
+          </div>
+          <div class="card" style="flex: 2;">
+            <div class="card-header">
+              <h3 class="card-title">Eventet sipas Llojit</h3>
+            </div>
+            <div style="height: 260px;"><canvas id="chart-event-types"></canvas></div>
+          </div>
+        </div>
+        <div class="dashboard-split">
+          <div class="card" style="flex: 2;">
+            <div class="card-header">
+              <h3 class="card-title">Eventet e Ardhshme</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Klienti & Eventi</th>
+                    <th>Data</th>
+                    <th>Vendndodhja</th>
+                    <th>Statusi</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-upcoming-events"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" style="flex: 1;">
+            <div class="card-header">
+              <h3 class="card-title">Stafi Aktiv</h3>
+            </div>
+            <div id="dash-workers-list" style="display: flex; flex-direction: column; gap: 10px; padding: 10px 0;"></div>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- CALENDAR TAB (FULLCALENDAR) -->
+      <section class="tab-content" id="tab-calendar">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Kalendari i Eventeve</h1>
+            <p class="page-subtitle">Menaxhoni datat dhe shikoni ngarkesën vizuale të dekorimeve.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openDecorModal()">＋ Rezervo Event</button>
+        </div>
+        <div class="card">
+          <div id="professional-calendar"></div>
+        </div>
+      </section>
+ 
+      <!-- DECORS TAB -->
+      <section class="tab-content" id="tab-decors">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Menaxhimi i Rezervimeve</h1>
+            <p class="page-subtitle">Lista e plotë e të gjitha dekorimeve dhe eventeve të regjistruara.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openDecorModal()">＋ Shto Rezervim të Ri</button>
+        </div>
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Klienti</th>
+                  <th>Lloji i Eventit</th>
+                  <th>Data</th>
+                  <th>Çmimi</th>
+                  <th>Përgjegjësi</th>
+                  <th>Statusi</th>
+                  <th>Veprime</th>
+                </tr>
+              </thead>
+              <tbody id="decors-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- TASKS TAB (KANBAN BOARD) -->
+      <section class="tab-content" id="tab-tasks">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Bordi i Detyrave</h1>
+            <p class="page-subtitle" id="tasks-subtitle">Caktoni detyra për ekipin dhe ndiqni progresin e tyre — tërhiqni kartat mes kolonave.</p>
+          </div>
+          <button class="btn btn-primary" id="add-task-btn" onclick="openTaskModal()">＋ Cakto Detyrë të Re</button>
+        </div>
+        <div class="summary-row">
+          <div class="sum-item">
+            <div class="sum-label">Gjithsej</div>
+            <div class="sum-value" id="task-count-total">0</div>
+          </div>
+          <div class="sum-item">
+            <div class="sum-label">Në Pritje</div>
+            <div class="sum-value text-gold" id="task-count-pending">0</div>
+          </div>
+          <div class="sum-item">
+            <div class="sum-label">Të Përfunduara</div>
+            <div class="sum-value text-success" id="task-count-done">0</div>
+          </div>
+        </div>
+        <div class="kanban-board">
+          <div class="kanban-col" data-status="todo" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'todo')">
+            <div class="kanban-col-header">
+              <span class="kanban-col-dot" style="background:#A8A59E;"></span>
+              <span>Në Pritje</span>
+              <span class="kanban-col-count" id="kanban-count-todo">0</span>
+            </div>
+            <div class="kanban-col-body" id="kanban-todo"></div>
+          </div>
+          <div class="kanban-col" data-status="inprogress" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'inprogress')">
+            <div class="kanban-col-header">
+              <span class="kanban-col-dot" style="background:#C9A84C;"></span>
+              <span>Në Proces</span>
+              <span class="kanban-col-count" id="kanban-count-inprogress">0</span>
+            </div>
+            <div class="kanban-col-body" id="kanban-inprogress"></div>
+          </div>
+          <div class="kanban-col" data-status="done" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'done')">
+            <div class="kanban-col-header">
+              <span class="kanban-col-dot" style="background:#085041;"></span>
+              <span>Përfunduar</span>
+              <span class="kanban-col-count" id="kanban-count-done">0</span>
+            </div>
+            <div class="kanban-col-body" id="kanban-done"></div>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- WORKERS TAB -->
+      <section class="tab-content" id="tab-workers">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Ekipi & Rolet</h1>
+            <p class="page-subtitle">Regjistroni stafin, caktoni rolet e punës dhe menaxhoni ngjyrat identifikuese.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openWorkerModal()">＋ Regjistro Punëtor</button>
+        </div>
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Emri</th>
+                  <th>Roli</th>
+                  <th>Telefoni</th>
+                  <th>Data e Fillimit</th>
+                  <th>Qasja në Financa</th>
+                  <th>Veprime</th>
+                </tr>
+              </thead>
+              <tbody id="workers-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- REPORTS / NOTES TAB -->
+      <section class="tab-content" id="tab-reports">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Raportet & Shënimet</h1>
+            <p class="page-subtitle">Raportoni probleme, përfundime pune ose shënime për ekipin.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openReportModal()">＋ Shto Raport</button>
+        </div>
+        <div class="card">
+          <div id="reports-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+      </section>
+ 
+      <!-- FINANCE TAB -->
+      <section class="tab-content" id="tab-finance">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Transaksionet Financiare</h1>
+            <p class="page-subtitle">Pasqyra e detajuar e të gjitha hyrjeve dhe daljeve monetare.</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="color: #085041; border-color: #085041;" onclick="openTransactionModal('income')">＋ Të Ardhura</button>
+            <button class="btn btn-outline" style="color: #A30000; border-color: #A30000;" onclick="openTransactionModal('expense')">＋ Shpenzime</button>
+          </div>
+        </div>
+        <div class="summary-row">
+          <div class="sum-item">
+            <div class="sum-label">Të hyra të deklaruara</div>
+            <div class="sum-value text-success" id="f-total-income">0 €</div>
+          </div>
+          <div class="sum-item" style="border-left: 1px solid var(--gold-mid); border-right: 1px solid var(--gold-mid);">
+            <div class="sum-label">Shpenzime Operative</div>
+            <div class="sum-value text-danger" id="f-total-expense">0 €</div>
+          </div>
+          <div class="sum-item">
+            <div class="sum-label">Neto (Profiti)</div>
+            <div class="sum-value text-gold" id="f-balance">0 €</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Përshkrimi / Eventi</th>
+                  <th>Lloji</th>
+                  <th>Data</th>
+                  <th>Shuma</th>
+                  <th>Veprime</th>
+                </tr>
+              </thead>
+              <tbody id="finance-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- CHAT TAB (I SHTUAR DHE INTEGRUAR PLOTËSISHT) -->
+      <section class="tab-content" id="tab-chat">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Chat i Ekipit</h1>
+            <p class="page-subtitle">Komunikimi i brendshëm në kohë reale për stafin e Arta Decor.</p>
+          </div>
+        </div>
+        <div class="chat-shell">
+          <div class="chat-sidebar">
+            <div class="chat-section">
+              <div class="chat-section-header">Kanalet</div>
+              <button class="btn btn-outline btn-sm" style="width: 100%; margin-bottom: 15px;" onclick="openModal('channel-modal')">＋ Kanal i ri</button>
+              <div class="chat-label">PUBLIKE</div>
+              <div id="channels-list"></div>
+            </div>
+            
+            <div class="chat-section" style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px;">
+              <div class="chat-label">ANËTARËT AKTIVË</div>
+              <div id="members-list"></div>
+            </div>
+          </div>
+ 
+          <div class="chat-main">
+            <div class="chat-topbar">
+              <div id="active-channel-icon" style="font-size: 20px;">💬</div>
+              <div>
+                <div id="active-channel-name" style="font-weight: 600; text-transform: capitalize;">përgjithshme</div>
+                <div id="active-channel-desc" style="font-size: 11px; color: var(--text2);">Diskutime kryesore mbi eventet</div>
+              </div>
+            </div>
+ 
+            <div class="messages-wrap" id="messages-wrap"></div>
+ 
+            <div class="chat-input-area">
+              <div style="position: relative; flex: 1; display: flex; gap: 8px;">
+                <button class="btn btn-outline" style="padding: 0 12px; font-size: 16px;" onclick="toggleEmojiPicker(event)">😊</button>
+                <input type="text" id="chat-msg-input" placeholder="Shkruaj një mesazh te grupi..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                
+                <!-- Emoji Picker Container -->
+                <div id="chat-emoji-picker" style="display: none; position: absolute; bottom: 50px; left: 0; background: #FFF; border: 1px solid var(--gold-mid); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow-lg); grid-template-columns: repeat(5, 1fr); gap: 6px; z-index: 2000;"></div>
+              </div>
+              <button class="btn btn-primary" onclick="sendChatMessage()">Dërgo ➤</button>
+            </div>
+          </div>
+        </div>
+      </section>
+ 
+      <!-- SETTINGS TAB -->
+      <section class="tab-content" id="tab-settings">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Cilësimet e Llogarisë</h1>
+            <p class="page-subtitle">Personalizoni profilin tuaj dhe preferencat e sistemit.</p>
+          </div>
+        </div>
+ 
+        <div class="dashboard-split">
+          <div style="flex: 2; display:flex; flex-direction:column; gap:24px;">
+ 
+            <!-- PROFILE CARD -->
+            <div class="card">
+              <div class="card-header" style="display:flex; align-items:center; gap:14px;">
+                <div class="user-avatar" id="settings-avatar-preview" style="width:52px; height:52px; font-size:20px;">A</div>
+                <div>
+                  <h3 class="card-title" style="margin-bottom:2px;">Profili Im</h3>
+                  <p style="font-size:12px; color:var(--text2);">Emri dhe fjalëkalimi yt i hyrjes.</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Emri i Shfaqur</label>
+                <input class="form-control" id="settings-name" placeholder="Emri Mbiemri">
+              </div>
+              <!-- Shfaqet vetëm për Admin -->
+              <div class="form-group" id="settings-username-field" style="display:none;">
+                <label class="form-label">Përdoruesi (Username) — për hyrjen si Admin</label>
+                <input class="form-control" id="settings-username" type="text" placeholder="arta_admin" autocomplete="username">
+              </div>
+              <div class="form-row cols-2">
+                <div class="form-group">
+                  <label class="form-label">Fjalëkalim i Ri</label>
+                  <input class="form-control" id="settings-pass1" type="password" placeholder="Lëre bosh nëse nuk ndryshon" minlength="4">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Konfirmo Fjalëkalimin</label>
+                  <input class="form-control" id="settings-pass2" type="password" placeholder="••••••••" minlength="4">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="saveAccountSettings()">Ruaj Ndryshimet</button>
+            </div>
+ 
+            <!-- APPEARANCE CARD -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Pamja & Stili</h3>
+                <p style="font-size:12px; color:var(--text2); margin-top:4px;">Zgjidh paletën e ngjyrave të panelit tënd.</p>
+              </div>
+              <div id="theme-swatches" style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px;"></div>
+              <hr style="border:0; border-top:1px solid var(--border); margin:16px 0;">
+              <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                <span style="font-size:13px; font-weight:500;">🌙 Tema e Errët (Dark Mode)</span>
+                <input type="checkbox" id="settings-darkmode" onchange="toggleDarkMode()" style="width:18px; height:18px; accent-color: var(--gold-dark);">
+              </label>
+            </div>
+ 
+          </div>
+ 
+          <!-- SPECIAL OPTION CARD -->
+          <div style="flex: 1;">
+            <div class="card" style="background: linear-gradient(160deg, var(--gold-light), #FFF); border-color: var(--gold-mid);">
+              <div class="card-header">
+                <h3 class="card-title">✨ Modaliteti Festiv</h3>
+                <p style="font-size:12px; color:var(--text2); margin-top:4px;">Një prekje argëtuese për panelin tënd — shfaq një rrebesh konfetie ari sa herë regjistron një event të ri.</p>
+              </div>
+              <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:10px 0;">
+                <span style="font-size:13px; font-weight:500;">Aktivizo Konfetin</span>
+                <input type="checkbox" id="settings-confetti" onchange="toggleConfettiSetting()" style="width:18px; height:18px; accent-color: var(--gold-dark);">
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+ 
+  <!-- MODAL: DEKOR / REZERVIM -->
+  <div class="modal-overlay" id="decor-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="decor-modal-title">Rezervo Event të Ri</div>
+        <button type="button" class="modal-close" onclick="closeModal('decor-modal')">✕</button>
+      </div>
+      <form id="decor-form">
+        <div class="modal-body">
+          <input type="hidden" id="d-id">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Emri i Klientit *</label>
+              <input class="form-control" id="d-client" placeholder="p.sh. Filan Fisteku" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lloji i Eventit *</label>
+              <select class="form-control" id="d-type" required>
+                <option value="Dasmë">Dasmë</option>
+                <option value="Ditëlindje">Ditëlindje</option>
+                <option value="Pagëzim">Pagëzim</option>
+                <option value="Aheng Korporativ">Aheng Korporativ</option>
+                <option value="Tjetër">Tjetër</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Data e Eventit *</label>
+              <input class="form-control" id="d-date" type="date" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Çmimi i Paketës (€) *</label>
+              <input class="form-control" id="d-price" type="number" placeholder="500" min="0" required>
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Vendndodhja</label>
+              <input class="form-control" id="d-location" placeholder="Salla e Festave...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Përgjegjësi nga Ekipi</label>
+              <select class="form-control" id="d-worker"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statusi i Rezervimit</label>
+            <select class="form-control" id="d-status">
+              <option value="I Konfirmuar">I Konfirmuar</option>
+              <option value="Në Pritje">Në Pritje</option>
+              <option value="Përfunduar">Përfunduar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shënime Specifike / Detaje mbi Dekorin</label>
+            <textarea class="form-control" id="d-notes" rows="3" placeholder="Ngjyrat e tullumbaceve, lloji i luleve, etj..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('decor-modal')">Anulo</button>
+          <button type="submit" class="btn btn-primary">Ruaj Eventin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<!-- MODAL: PUNETOR (I PËRDITËSUAR ME KREDENCIALE) -->
+  <div class="modal-overlay" id="worker-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="worker-modal-title">Regjistro Punëtor të Ri</div>
+        <button type="button" class="modal-close" onclick="closeModal('worker-modal')">✕</button>
+      </div>
+      <form id="worker-form">
+        <div class="modal-body">
+          <input type="hidden" id="w-id">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Emri i Plotë *</label>
+              <input class="form-control" id="w-name" placeholder="p.sh. Erion Krasniqi" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Roli *</label>
+              <select class="form-control" id="w-role" required>
+                <option value="Punëtor">Punëtor</option>
+                <option value="Shef">Shef</option>
+                <option value="Koordinator Eventesh">Koordinator Eventesh</option>
+                <option value="Shofer">Shofer</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Telefoni</label>
+              <input class="form-control" id="w-phone" placeholder="+355 6X XXX XXXX">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data e Fillimit</label>
+              <input class="form-control" id="w-start" type="date">
+            </div>
+          </div>
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+          <div class="form-group">
+            <label class="form-label">Fjalëkalimi për Kyçje *</label>
+            <input class="form-control" id="w-pass" type="password" placeholder="••••••••" minlength="4" required>
+          </div>
+          <p style="font-size:11px; color:var(--text3); margin-top:-4px;">ℹ️ Vetëm llogaria e Shefit (Admin) ka qasje në Financat. Të gjithë punëtorët e regjistruar këtu, pavarësisht rolit, nuk shohin Financat, Rezervimet apo Ekipin & Rolet.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('worker-modal')">Anulo</button>
+          <button type="submit" class="btn btn-primary">Regjistro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+ 
+  <!-- MODAL: DETYRË E RE -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Cakto Detyrë të Re</div>
+        <button type="button" class="modal-close" onclick="closeModal('task-modal')">✕</button>
+      </div>
+      <form id="task-form">
+        <div class="modal-body">
+          <input type="hidden" id="task-id">
+          <div class="form-group">
+            <label class="form-label">Titulli i Detyrës *</label>
+            <input class="form-control" id="task-title" placeholder="p.sh. Përgatit dekorimin për dasmën e Sh. K." required>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Cakto te Punëtori *</label>
+              <select class="form-control" id="task-worker" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Afati Kohor</label>
+              <input class="form-control" id="task-due" type="date">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Përshkrim / Detaje</label>
+            <textarea class="form-control" id="task-desc" rows="3" placeholder="Detaje shtesë rreth detyrës..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('task-modal')">Anulo</button>
+          <button type="submit" class="btn btn-primary">Cakto Detyrën</button>
+        </div>
+      </form>
+    </div>
+  </div>
+ 
+  <!-- MODAL: RAPORT / SHËNIM I RI -->
+  <div class="modal-overlay" id="report-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Shto Raport ose Shënim</div>
+        <button type="button" class="modal-close" onclick="closeModal('report-modal')">✕</button>
+      </div>
+      <form id="report-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Lloji</label>
+            <select class="form-control" id="report-type">
+              <option value="Përfundim Pune">Përfundim Pune</option>
+              <option value="Problem">Problem</option>
+              <option value="Shënim">Shënim i Përgjithshëm</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Përmbajtja *</label>
+            <textarea class="form-control" id="report-content" rows="4" placeholder="Shkruani raportin ose shënimin tuaj..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('report-modal')">Anulo</button>
+          <button type="submit" class="btn btn-primary">Dërgo Raportin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+ 
+  <!-- MODAL: KANAL I RI -->
+  <div class="modal-overlay" id="channel-modal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <div class="modal-title">Hap Kanal të Ri Bisede</div>
+        <button class="modal-close" onclick="closeModal('channel-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Emri i Kanalit *</label>
+          <input class="form-control" id="new-ch-name" placeholder="p.sh. pergatitje-dizajni">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Përshkrimi i Shkurtër</label>
+          <input class="form-control" id="new-ch-desc" placeholder="Koordinimi i ekipit për lulet...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('channel-modal')">Anulo</button>
+        <button class="btn btn-primary" onclick="createNewChannel()">Krijo Kanalin</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- MODAL: DETAIL / SHIKIM EVENTI -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="detail-title">Detajet e Dekorit</div>
+        <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('detail-modal')">Mbyll</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- MODAL: TRANSAKSION (FINANCE) -->
+  <div class="modal-overlay" id="trans-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="trans-modal-title">Shto Transaksion</div>
+        <button type="button" class="modal-close" onclick="closeModal('trans-modal')">✕</button>
+      </div>
+      <form id="trans-form">
+        <div class="modal-body">
+          <input type="hidden" id="t-id">
+          <input type="hidden" id="t-type">
+          <div class="form-group">
+            <label class="form-label">Përshkrimi / Arsyeja *</label>
+            <input class="form-control" id="t-desc" placeholder="p.sh. Pagesë pakete ose Blerje lulesh" required>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Shuma (€) *</label>
+              <input class="form-control" id="t-amount" type="number" placeholder="100" min="0.01" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data *</label>
+              <input class="form-control" id="t-date" type="date" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('trans-modal')">Anulo</button>
+          <button type="submit" class="btn btn-primary">Ruaj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+ 
+  <div id="toast-container"></div>
+ 
+ 
+  <script src="app.js"></script>
+</body>
+</html>
