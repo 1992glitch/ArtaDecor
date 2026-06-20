@@ -22,7 +22,9 @@ const EMOJIS = ['😊', '✨', '🎈', '💐', '🎉', '🥂', '💖', '📅', '
  
 async function loadState() {
   try {
-    const res = await fetch('/api/state');
+    const res = await fetch('/api/state', {
+      headers: { 'x-api-secret': 'fjalekalim_sekret_123' }
+    });
     const saved = await res.json();
     if (saved && saved.decors) {
       state = saved;
@@ -48,11 +50,25 @@ async function loadState() {
  
 async function saveState() {
   try {
-    await fetch('/api/state', {
+    const res = await fetch('/api/state', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-secret': 'fjalekalim_sekret_123'
+      },
       body: JSON.stringify(state)
     });
+    const data = await res.json();
+    // Përditëso state me fjalëkalimet e hash-uara nga serveri
+    if (data.ok && data.state) {
+      state.adminPassword = data.state.adminPassword;
+      if (Array.isArray(data.state.workers)) {
+        data.state.workers.forEach(sw => {
+          const w = state.workers.find(x => x.id === sw.id);
+          if (w) w.password = sw.password;
+        });
+      }
+    }
   } catch (err) {
     console.error('Gabim gjatë ruajtjes:', err);
   }
@@ -187,39 +203,51 @@ function backToRoles() {
   document.getElementById('login-pass').value = '';
 }
  
-function checkLogin() {
+async function checkLogin() {
   const p = document.getElementById('login-pass').value;
+ 
+  if (!p) { toast('Ju lutem shkruani fjalëkalimin!', 'error'); return; }
+  if (p.length < 4) { toast('Fjalëkalimi duhet të ketë të paktën 4 karaktere!', 'error'); return; }
  
   if (selectedRole === 'admin') {
     const u = document.getElementById('login-username').value.trim();
     if (!u) { toast('Ju lutem shkruani emrin e përdoruesit!', 'error'); return; }
-    if (!p)  { toast('Ju lutem shkruani fjalëkalimin!', 'error'); return; }
-    if (p.length < 4) { toast('Fjalëkalimi duhet të ketë të paktën 4 karaktere!', 'error'); return; }
-    if (u !== state.adminUsername) {
-      toast('Emri i përdoruesit është i gabuar!', 'error');
-      return;
+ 
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-secret': 'fjalekalim_sekret_123' },
+        body: JSON.stringify({ type: 'admin', username: u, password: p })
+      });
+      const data = await res.json();
+      if (!data.ok) { toast(data.error || 'Kyçja dështoi!', 'error'); return; }
+      currentUser = data.user;
+      localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
+      showApp();
+      toast('Mirëseerdhët në Arta Decor!', 'success');
+    } catch (err) {
+      toast('Gabim gjatë kyçjes!', 'error');
     }
-    if (p !== state.adminPassword) {
-      toast('Fjalëkalimi i gabuar!', 'error');
-      return;
-    }
-    currentUser = { name: 'Arta (Admin)', role: 'Super Admin', access: 'admin' };
-    localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
-    showApp();
-    toast('Mirëseerdhët në Arta Decor!', 'success');
+ 
   } else {
     const workerId = document.getElementById('login-worker-dropdown').value;
     if (!workerId) { toast('Ju lutem zgjidhni emrin tuaj!', 'error'); return; }
-    const worker = state.workers.find(w => w.id === workerId);
-    if (!worker) { toast('Punëtori nuk u gjet!', 'error'); return; }
-    if (!worker.password || worker.password !== p) {
-      toast('Fjalëkalimi i gabuar!', 'error');
-      return;
+ 
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-secret': 'fjalekalim_sekret_123' },
+        body: JSON.stringify({ type: 'worker', workerId, password: p })
+      });
+      const data = await res.json();
+      if (!data.ok) { toast(data.error || 'Kyçja dështoi!', 'error'); return; }
+      currentUser = data.user;
+      localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
+      showApp();
+      toast(`Mirëseerdhët, ${data.user.name}!`, 'success');
+    } catch (err) {
+      toast('Gabim gjatë kyçjes!', 'error');
     }
-    currentUser = { name: worker.name, role: worker.role, access: worker.access || 'worker', workerId: worker.id };
-    localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
-    showApp();
-    toast(`Mirëseerdhët, ${worker.name}!`, 'success');
   }
 }
  
