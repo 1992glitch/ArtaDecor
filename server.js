@@ -25,8 +25,7 @@ const supabaseHeaders = {
  
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
- 
-app.use('/api', (req, res, next) => {
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));app.use('/api', (req, res, next) => {
   const token = req.headers['x-api-secret'];
   if (!token || token !== API_SECRET) {
     return res.status(403).json({ error: 'Akses i ndaluar' });
