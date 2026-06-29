@@ -1,31 +1,31 @@
 ﻿require('dotenv').config();
-
+ 
 const fetch   = require('node-fetch');
 const express = require('express');
 const bcrypt  = require('bcrypt');
 const path    = require('path');
-
+ 
 const app = express();
-
+ 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const API_SECRET   = process.env.API_SECRET;
 const SALT_ROUNDS  = 10;
-
+ 
 if (!SUPABASE_URL || !SUPABASE_KEY || !API_SECRET) {
   console.error('Mungojne variablat ne .env');
   process.exit(1);
 }
-
+ 
 const supabaseHeaders = {
   'apikey':        SUPABASE_KEY,
   'Authorization': `Bearer ${SUPABASE_KEY}`,
   'Content-Type':  'application/json'
 };
-
+ 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
-
+ 
 app.use('/api', (req, res, next) => {
   const token = req.headers['x-api-secret'];
   if (!token || token !== API_SECRET) {
@@ -33,7 +33,7 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
-
+ 
 app.get('/api/state', async (req, res) => {
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/state?key=eq.main&select=value`, { headers: supabaseHeaders });
@@ -41,7 +41,7 @@ app.get('/api/state', async (req, res) => {
     if (data && data.length > 0) { res.json(JSON.parse(data[0].value)); } else { res.json({}); }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-
+ 
 app.post('/api/state', async (req, res) => {
   try {
     const stateData = req.body;
@@ -64,7 +64,7 @@ app.post('/api/state', async (req, res) => {
     res.json({ ok: true, state: stateData });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-
+ 
 app.post('/api/login', async (req, res) => {
   try {
     const { type, password, username, workerId } = req.body;
@@ -86,5 +86,45 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-
+ 
+// ── RESET ADMIN PASSWORD (emergjencë) ──
+app.post('/api/reset-admin', async (req, res) => {
+  try {
+    const { secret, newPassword, newUsername } = req.body;
+    if (!secret || secret !== API_SECRET) {
+      return res.status(403).json({ error: 'Akses i ndaluar' });
+    }
+    if (!newPassword || newPassword.length < 4) {
+      return res.status(400).json({ error: 'Fjalëkalimi duhet të ketë të paktën 4 karaktere' });
+    }
+ 
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/state?key=eq.main&select=value`, { headers: supabaseHeaders });
+    const data = await response.json();
+    let stateData = {};
+    if (data && data.length > 0) {
+      stateData = JSON.parse(data[0].value);
+    }
+ 
+    stateData.adminPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    if (newUsername) stateData.adminUsername = newUsername;
+ 
+    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/state`, {
+      method: 'POST',
+      headers: { ...supabaseHeaders, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ key: 'main', value: JSON.stringify(stateData) })
+    });
+ 
+    if (!saveRes.ok) {
+      const errText = await saveRes.text();
+      return res.status(500).json({ error: errText });
+    }
+ 
+    res.json({ ok: true, message: 'Fjalëkalimi i adminit u rivendos me sukses!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+ 
 module.exports = app;
+app.listen(process.env.PORT || 3000, () => console.log('Serveri po punon ne port 3000'));
+ 
