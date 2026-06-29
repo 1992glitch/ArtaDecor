@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+﻿if (process.env.NODE_ENV !== 'production') require('dotenv').config();
  
 const fetch   = require('node-fetch');
 const express = require('express');
@@ -126,5 +126,3 @@ app.post('/api/reset-admin', async (req, res) => {
 });
  
 module.exports = app;
-app.listen(process.env.PORT || 3000, () => console.log('Serveri po punon ne port 3000'));
- 
