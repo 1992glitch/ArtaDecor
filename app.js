@@ -22,19 +22,26 @@ const EMOJIS = ['😊', '✨', '🎈', '💐', '🎉', '🥂', '💖', '📅', '
  
 async function loadState() {
   try {
-    const res = await fetch('/api/state', {
-      headers: { 'x-api-secret': 'fjalekalim_sekret_123' }
-    });
-    const saved = await res.json();
-    if (saved && saved.decors) {
-      state = saved;
+    const saved = localStorage.getItem(DATA_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.decors) state = { ...state, ...parsed };
+      else seedData();
     } else {
       seedData();
     }
-  } catch (err) {
-    console.error('Gabim gjatë ngarkimit:', err);
+  } catch(err) {
     seedData();
   }
+  if (!state.channels || state.channels.length === 0) state.channels = [{ id: 'pergjithshme', name: 'pergjithshme', desc: 'Biseda e përgjithshme' }];
+  if (!state.messages) state.messages = {};
+  if (!state.tasks) state.tasks = [];
+  state.tasks.forEach(t => { if (!t.status) t.status = t.done ? 'done' : 'todo'; });
+  if (!state.reports) state.reports = [];
+  if (!state.settings) state.settings = { theme: 'gold', confetti: false };
+  if (!state.adminPassword) state.adminPassword = 'rinni';
+  if (!state.adminUsername) state.adminUsername = 'riniadmin';
+}
   // Migration guards
   if (!state.channels || state.channels.length === 0) {
     state.channels = [{ id: 'pergjithshme', name: 'pergjithshme', desc: 'Biseda e përgjithshme' }];
@@ -49,14 +56,8 @@ async function loadState() {
 }
  
 async function saveState() {
-  try {
-    const res = await fetch('/api/state', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-secret': 'fjalekalim_sekret_123'
-      },
-      body: JSON.stringify(state)
+  localStorage.setItem(DATA_KEY, JSON.stringify(state));
+}      body: JSON.stringify(state)
     });
     const data = await res.json();
     // Përditëso state me fjalëkalimet e hash-uara nga serveri
@@ -205,29 +206,33 @@ function backToRoles() {
  
 async function checkLogin() {
   const p = document.getElementById('login-pass').value;
- 
   if (!p) { toast('Ju lutem shkruani fjalëkalimin!', 'error'); return; }
-  if (p.length < 4) { toast('Fjalëkalimi duhet të ketë të paktën 4 karaktere!', 'error'); return; }
- 
+
   if (selectedRole === 'admin') {
     const u = document.getElementById('login-username').value.trim();
     if (!u) { toast('Ju lutem shkruani emrin e përdoruesit!', 'error'); return; }
- 
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-secret': 'fjalekalim_sekret_123' },
-        body: JSON.stringify({ type: 'admin', username: u, password: p })
-      });
-      const data = await res.json();
-      if (!data.ok) { toast(data.error || 'Kyçja dështoi!', 'error'); return; }
-      currentUser = data.user;
+    if (u === state.adminUsername && p === state.adminPassword) {
+      currentUser = { name: 'Arta', access: 'admin' };
       localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
       showApp();
       toast('Mirëseerdhët në Arta Decor!', 'success');
-    } catch (err) {
-      toast('Gabim gjatë kyçjes!', 'error');
+    } else {
+      toast('Kredencialet janë të gabuara!', 'error');
     }
+  } else {
+    const workerId = document.getElementById('login-worker-dropdown').value;
+    if (!workerId) { toast('Ju lutem zgjidhni emrin tuaj!', 'error'); return; }
+    const worker = state.workers.find(w => w.id === workerId);
+    if (worker && worker.password === p) {
+      currentUser = { name: worker.name, role: worker.role, access: 'worker', workerId: worker.id };
+      localStorage.setItem('artadecor_session', JSON.stringify(currentUser));
+      showApp();
+      toast(`Mirëseerdhët, ${worker.name}!`, 'success');
+    } else {
+      toast('Fjalëkalimi është i gabuar!', 'error');
+    }
+  }
+}
  
   } else {
     const workerId = document.getElementById('login-worker-dropdown').value;
